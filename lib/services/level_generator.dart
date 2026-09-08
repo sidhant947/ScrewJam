@@ -1125,6 +1125,51 @@ class LevelGenerator {
     );
   }
 
+  static Offset _getGlobalHolePosition(PlateModel plate, ScrewHoleModel hole) {
+    final cosA = cos(plate.angle);
+    final sinA = sin(plate.angle);
+    final rx = hole.relativeOffset.dx * cosA - hole.relativeOffset.dy * sinA;
+    final ry = hole.relativeOffset.dx * sinA + hole.relativeOffset.dy * cosA;
+    return plate.position + Offset(rx, ry);
+  }
+
+  static bool _isPointInsidePlate(Offset pt, PlateModel plate) {
+    final rel = pt - plate.position;
+    final cosA = cos(-plate.angle);
+    final sinA = sin(-plate.angle);
+    final localPt = Offset(
+      rel.dx * cosA - rel.dy * sinA,
+      rel.dx * sinA + rel.dy * cosA,
+    );
+    return getPlatePath(plate).contains(localPt);
+  }
+
+  static bool _isHoleCoveredByHigherPlate(PlateModel targetPlate, ScrewHoleModel hole, List<PlateModel> activePlates) {
+    final globalPos = _getGlobalHolePosition(targetPlate, hole);
+    const screwRadius = 15.0;
+    final checkOffsets = <Offset>[
+      Offset.zero,
+    ];
+    for (int i = 0; i < 8; i++) {
+      final angle = i * pi / 4;
+      checkOffsets.add(Offset(cos(angle) * screwRadius, sin(angle) * screwRadius));
+      checkOffsets.add(Offset(cos(angle) * (screwRadius * 0.65), sin(angle) * (screwRadius * 0.65)));
+    }
+
+    for (final plate in activePlates) {
+      if (plate.isFalling) continue;
+      if (plate.id == targetPlate.id) continue;
+      if (plate.layer > targetPlate.layer) {
+        for (final offset in checkOffsets) {
+          if (_isPointInsidePlate(globalPos + offset, plate)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   static GameState _populateSolvableScrewsWithProgression(
     GameState blueprint,
     int level,
@@ -1132,37 +1177,12 @@ class LevelGenerator {
     int? numColorsOverride,
     double? swapRateOverride,
   }) {
-    final sortedPlates = List<PlateModel>.from(blueprint.plates)
-      ..sort((a, b) => b.layer.compareTo(a.layer));
-
-    final allHoleRefs = <ScrewHoleModel>[];
-    for (final plate in sortedPlates) {
-      allHoleRefs.addAll(plate.holes);
+    for (final p in blueprint.plates) {
+      p.isFalling = false;
+      for (final h in p.holes) {
+        h.currentScrew = null;
+      }
     }
-
-    final totalHoles = allHoleRefs.length;
-
-    final List<int> boxCapacities = [];
-    final int baseCount = totalHoles ~/ 3;
-    final int remainder = totalHoles % 3;
-
-    if (remainder == 0) {
-      for (int i = 0; i < baseCount; i++) { boxCapacities.add(3); }
-    } else if (remainder == 1) {
-      boxCapacities.add(4);
-      for (int i = 0; i < baseCount - 1; i++) { boxCapacities.add(3); }
-    } else {
-      boxCapacities.add(2);
-      for (int i = 0; i < baseCount; i++) { boxCapacities.add(3); }
-    }
-
-    while (boxCapacities.length < 2) {
-      final cap = boxCapacities.isEmpty ? 4 : boxCapacities.removeLast();
-      final half = cap ~/ 2;
-      boxCapacities.addAll([half, cap - half]);
-    }
-
-    final numBoxes = boxCapacities.length;
 
     final allAvailableColors = [
       ScrewColor.purple,
@@ -1201,47 +1221,114 @@ class LevelGenerator {
       palette.add(colorPool.removeAt(pickIdx));
     }
 
-    final boxColors = <ScrewColor>[];
-    for (int i = 0; i < numBoxes; i++) {
-      boxColors.add(palette[i % palette.length]);
-    }
-
-    final allHoleIndices = List<int>.generate(totalHoles, (i) => i);
-    allHoleIndices.shuffle(rng);
-
-    for (int i = 0; i < totalHoles; i++) {
-      allHoleRefs[i].currentScrew = null;
-    }
-
-    int holeOffset = 0;
-    for (int b = 0; b < numBoxes; b++) {
-      final color = boxColors[b];
-      final cap = boxCapacities[b];
-      for (int s = 0; s < cap; s++) {
-        allHoleRefs[allHoleIndices[holeOffset]].currentScrew = color;
-        holeOffset++;
+    final activePlates = List<PlateModel>.from(blueprint.plates);
+    final unassignedHoles = <_SimHoleRef>[];
+    for (final p in blueprint.plates) {
+      for (final h in p.holes) {
+        unassignedHoles.add(_SimHoleRef(p, h));
       }
     }
 
-    for (final plate in sortedPlates) {
-      plate.hadScrewsOnLoad = plate.holes.any((h) => h.currentScrew != null);
+    final boxes = <ToolboxModel>[];
+    int colorIdx = 0;
+    final waitingScrews = <ScrewColor>[];
+
+    while (unassignedHoles.isNotEmpty || waitingScrews.isNotEmpty) {
+      ScrewColor? chosenColor;
+      if (waitingScrews.length >= 3) {
+        final counts = <ScrewColor, int>{};
+        for (final s in waitingScrews) {
+          counts[s] = (counts[s] ?? 0) + 1;
+        }
+        for (final entry in counts.entries) {
+          if (entry.value >= 2) {
+            chosenColor = entry.key;
+            break;
+          }
+        }
+      }
+
+      if (chosenColor == null) {
+        chosenColor = palette[colorIdx % palette.length];
+        colorIdx++;
+      }
+
+      int boxCapacity = 3;
+      final remainingHolesCount = unassignedHoles.length + waitingScrews.where((s) => s == chosenColor).length;
+      if (remainingHolesCount < 3) {
+        boxCapacity = remainingHolesCount;
+      }
+      if (boxCapacity <= 0) {
+        if (unassignedHoles.isEmpty && waitingScrews.isNotEmpty) {
+          final nextColor = waitingScrews.first;
+          final count = waitingScrews.where((s) => s == nextColor).length;
+          boxes.add(ToolboxModel(targetColor: nextColor, capacity: count));
+          waitingScrews.removeWhere((s) => s == nextColor);
+          continue;
+        }
+        break;
+      }
+
+      int needed = boxCapacity;
+      while (needed > 0 && waitingScrews.contains(chosenColor)) {
+        waitingScrews.remove(chosenColor);
+        needed--;
+      }
+
+      while (needed > 0 && unassignedHoles.isNotEmpty) {
+        var exposed = unassignedHoles.where((ref) =>
+          !_isHoleCoveredByHigherPlate(ref.plate, ref.hole, activePlates)
+        ).toList();
+
+        if (exposed.isEmpty) {
+          activePlates.sort((a, b) => b.layer.compareTo(a.layer));
+          final highestPlate = activePlates.first;
+          exposed = unassignedHoles.where((ref) => ref.plate.id == highestPlate.id).toList();
+        }
+
+        if (exposed.isEmpty) break;
+
+        exposed.sort((a, b) {
+          final aCount = unassignedHoles.where((r) => r.plate.id == a.plate.id).length;
+          final bCount = unassignedHoles.where((r) => r.plate.id == b.plate.id).length;
+          return aCount.compareTo(bCount);
+        });
+
+        final pick = exposed.first;
+        pick.hole.currentScrew = chosenColor;
+        unassignedHoles.remove(pick);
+        needed--;
+
+        final plateHolesLeft = unassignedHoles.where((r) => r.plate.id == pick.plate.id).length;
+        if (plateHolesLeft == 0) {
+          pick.plate.isFalling = true;
+          activePlates.remove(pick.plate);
+        }
+      }
+
+      if (boxCapacity - needed > 0) {
+        boxes.add(ToolboxModel(targetColor: chosenColor, capacity: boxCapacity - needed));
+      }
     }
 
-    final activeBox = ToolboxModel(
-      targetColor: boxColors.first,
-      capacity: boxCapacities.first,
-    );
-    final pendingBoxes = List.generate(
-      numBoxes - 1,
-      (i) => ToolboxModel(
-        targetColor: boxColors[i + 1],
-        capacity: boxCapacities[i + 1],
-      ),
-    );
+    for (final p in blueprint.plates) {
+      p.isFalling = false;
+      p.hadScrewsOnLoad = p.holes.any((h) => h.currentScrew != null);
+    }
+
+    if (boxes.isEmpty) {
+      boxes.add(ToolboxModel(targetColor: palette.first, capacity: 1));
+    }
 
     return blueprint.copyWith(
-      activeBox: activeBox,
-      pendingBoxes: pendingBoxes,
+      activeBox: boxes.first,
+      pendingBoxes: boxes.length > 1 ? boxes.sublist(1) : const [],
     );
   }
+}
+
+class _SimHoleRef {
+  final PlateModel plate;
+  final ScrewHoleModel hole;
+  _SimHoleRef(this.plate, this.hole);
 }
