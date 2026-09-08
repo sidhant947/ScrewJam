@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../game/screw_jam_game.dart';
+import '../models/app_theme.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/haptics.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -50,6 +52,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
     final notifier = ref.read(gameProvider.notifier);
+    final appTheme = ref.watch(themeProvider);
 
     _game ??= ScrewJamGame(
       notifier: notifier,
@@ -60,22 +63,23 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: appTheme.background,
           appBar: AppBar(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF1E293B),
-            elevation: 0.5,
+            backgroundColor: Colors.transparent,
+            foregroundColor: appTheme.appBarFg,
+            elevation: 0,
+            scrolledUnderElevation: 0,
             centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: appTheme.appBarFg),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: gameState.isRandom
-                    ? (gameState.difficulty?.color.withValues(alpha: 0.15) ?? const Color(0xFFE2E8F0))
-                    : const Color(0xFFE2E8F0),
+                    ? (gameState.difficulty?.color.withValues(alpha: 0.15) ?? appTheme.surfaceVariant)
+                    : appTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -87,14 +91,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   fontSize: 16,
                   letterSpacing: 1.0,
                   color: gameState.isRandom
-                      ? (gameState.difficulty?.darkColor ?? const Color(0xFF1E293B))
-                      : const Color(0xFF1E293B),
+                      ? (gameState.difficulty?.darkColor ?? appTheme.textPrimary)
+                      : appTheme.textPrimary,
                 ),
               ),
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.replay_rounded, color: Color(0xFF64748B), size: 24),
+                icon: Icon(Icons.replay_rounded, color: appTheme.textMuted, size: 24),
                 onPressed: () {
                   Haptics.select();
                   _resetZoom();
@@ -104,14 +108,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ],
           ),
           body: Container(
-            color: Colors.white,
+            color: appTheme.background,
             child: SafeArea(
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-                  _buildToolboxConveyor(gameState),
+                  _buildToolboxConveyor(gameState, appTheme),
                   const SizedBox(height: 14),
-                  _buildWaitingTray(gameState),
+                  _buildWaitingTray(gameState, appTheme),
                   const SizedBox(height: 4),
                   Expanded(
                     child: Stack(
@@ -140,7 +144,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1E293B).withValues(alpha: 0.82),
+                                    color: appTheme.surfaceVariant.withValues(alpha: 0.9),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: const [
                                       BoxShadow(
@@ -153,12 +157,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.restart_alt_rounded, size: 16, color: Colors.white),
+                                      Icon(Icons.restart_alt_rounded, size: 16, color: appTheme.textPrimary),
                                       const SizedBox(width: 4),
                                       Text(
                                         '${(_game!.userZoom * 100).round()}%',
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: appTheme.textPrimary,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -183,6 +187,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             subtitle: 'WELL DONE!',
             buttonText: gameState.isRandom ? 'NEW PUZZLE' : 'NEXT LEVEL',
             isWin: true,
+            appTheme: appTheme,
             onPressed: () {
               notifier.nextLevel();
             },
@@ -193,6 +198,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             subtitle: 'No more empty slots available',
             buttonText: 'TRY AGAIN',
             isWin: false,
+            appTheme: appTheme,
             onPressed: () {
               notifier.restartCurrentLevel();
             },
@@ -201,7 +207,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _buildToolboxConveyor(GameState state) {
+  Widget _buildToolboxConveyor(GameState state, AppThemeData appTheme) {
     final activeBox = state.activeBox;
     final pendingBoxes = state.pendingBoxes;
 
@@ -216,17 +222,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             Positioned(
               left: -48,
               top: 10,
-              child: _buildMiniPendingBox(pendingBoxes.first),
+              child: _buildMiniPendingBox(pendingBoxes.first, appTheme),
             ),
           Center(
-            child: _buildMainToolbox(activeBox),
+            child: _buildMainToolbox(activeBox, appTheme),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMiniPendingBox(ToolboxModel box) {
+  Widget _buildMiniPendingBox(ToolboxModel box, AppThemeData appTheme) {
     final color = box.targetColor;
     return Container(
       width: 85,
@@ -259,8 +265,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               height: 18,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFCBD5E1),
-                border: Border.all(color: const Color(0xFF94A3B8), width: 1.5),
+                color: appTheme.surfaceVariant,
+                border: Border.all(color: appTheme.border, width: 1.5),
               ),
             ),
           ),
@@ -269,7 +275,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _buildMainToolbox(ToolboxModel box) {
+  Widget _buildMainToolbox(ToolboxModel box, AppThemeData appTheme) {
     final color = box.targetColor;
 
     return Stack(
@@ -282,9 +288,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             width: 48,
             height: 16,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
+              color: appTheme.toolboxHandle,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              border: Border.all(color: const Color(0xFF94A3B8), width: 2.0),
+              border: Border.all(color: appTheme.toolboxHandleBorder, width: 2.0),
             ),
           ),
         ),
@@ -359,14 +365,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  Widget _buildWaitingTray(GameState state) {
+  Widget _buildWaitingTray(GameState state, AppThemeData appTheme) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFCBD5E1),
+        color: appTheme.waitingTray,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF94A3B8), width: 2.5),
+        border: Border.all(color: appTheme.waitingTrayBorder, width: 2.5),
         boxShadow: const [
           BoxShadow(
             color: Colors.black12,
@@ -386,8 +392,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF94A3B8),
-              border: Border.all(color: const Color(0xFFF1F5F9), width: 2.0),
+              color: appTheme.surfaceVariant,
+              border: Border.all(color: appTheme.border, width: 2.0),
               boxShadow: const [
                 BoxShadow(
                   color: Colors.black26,
@@ -424,9 +430,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   : Container(
                       width: 14,
                       height: 14,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Color(0xFF64748B),
+                        color: appTheme.borderStrong,
                       ),
                     ),
             ),
@@ -442,6 +448,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     required String buttonText,
     required bool isWin,
     required VoidCallback onPressed,
+    required AppThemeData appTheme,
   }) {
     return Material(
       type: MaterialType.transparency,
@@ -452,7 +459,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 32),
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: appTheme.dialogBg,
               borderRadius: BorderRadius.circular(28),
               boxShadow: const [
                 BoxShadow(
@@ -487,10 +494,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
+                    color: appTheme.textMuted,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -521,9 +528,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF475569),
+                    foregroundColor: appTheme.textPrimary,
                     minimumSize: const Size.fromHeight(48),
-                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 2),
+                    side: BorderSide(color: appTheme.border, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -544,18 +551,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     mode: LaunchMode.externalApplication,
                   ),
                   icon: const Icon(Icons.coffee_rounded, size: 20, color: Color(0xFFFF5E5B)),
-                  label: const Text(
+                  label: Text(
                     'Buy me a coffee',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
-                      color: Color(0xFF475569),
+                      color: appTheme.textPrimary,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(48),
-                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 2),
+                    side: BorderSide(color: appTheme.border, width: 2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

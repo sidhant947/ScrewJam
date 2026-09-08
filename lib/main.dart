@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/storage_service.dart';
 
@@ -18,15 +19,16 @@ void main() async {
   );
 }
 
-class ScrewJamApp extends StatelessWidget {
+class ScrewJamApp extends ConsumerWidget {
   const ScrewJamApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appTheme = ref.watch(themeProvider);
     return MaterialApp(
       title: 'Screw Jam',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, fontFamily: 'Fredoka'),
+      theme: appTheme.toMaterialTheme(),
       home: const HomeScreen(),
     );
   }
