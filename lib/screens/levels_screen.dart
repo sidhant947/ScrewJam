@@ -26,17 +26,7 @@ class LevelsScreen extends ConsumerWidget {
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFFFFF),
-              Color(0xFFF1F4F9),
-              Color(0xFFE2E8F0),
-            ],
-          ),
-        ),
+        color: Colors.white,
         child: SafeArea(
           child: GridView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

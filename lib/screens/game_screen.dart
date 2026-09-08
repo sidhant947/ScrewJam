@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../game/screw_jam_game.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
+import '../services/haptics.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -59,7 +60,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: const Color(0xFFF0F4F8),
+          backgroundColor: Colors.white,
           appBar: AppBar(
             backgroundColor: Colors.white,
             foregroundColor: const Color(0xFF1E293B),
@@ -95,6 +96,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               IconButton(
                 icon: const Icon(Icons.replay_rounded, color: Color(0xFF64748B), size: 24),
                 onPressed: () {
+                  Haptics.select();
                   _resetZoom();
                   notifier.restartCurrentLevel();
                 },
@@ -102,17 +104,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ],
           ),
           body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFFFFFFF),
-                  Color(0xFFF1F5F9),
-                  Color(0xFFE2E8F0),
-                ],
-              ),
-            ),
+            color: Colors.white,
             child: SafeArea(
               child: Column(
                 children: [
@@ -503,7 +495,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: onPressed,
+                  onPressed: () {
+                    Haptics.select();
+                    onPressed();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isWin ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                     foregroundColor: Colors.white,

@@ -1141,8 +1141,28 @@ class LevelGenerator {
     }
 
     final totalHoles = allHoleRefs.length;
-    final numBoxes = max(2, (totalHoles / 3).floor());
-    final activeScrewsCount = numBoxes * 3;
+
+    final List<int> boxCapacities = [];
+    final int baseCount = totalHoles ~/ 3;
+    final int remainder = totalHoles % 3;
+
+    if (remainder == 0) {
+      for (int i = 0; i < baseCount; i++) { boxCapacities.add(3); }
+    } else if (remainder == 1) {
+      boxCapacities.add(4);
+      for (int i = 0; i < baseCount - 1; i++) { boxCapacities.add(3); }
+    } else {
+      boxCapacities.add(2);
+      for (int i = 0; i < baseCount; i++) { boxCapacities.add(3); }
+    }
+
+    while (boxCapacities.length < 2) {
+      final cap = boxCapacities.isEmpty ? 4 : boxCapacities.removeLast();
+      final half = cap ~/ 2;
+      boxCapacities.addAll([half, cap - half]);
+    }
+
+    final numBoxes = boxCapacities.length;
 
     final allAvailableColors = [
       ScrewColor.purple,
@@ -1186,35 +1206,38 @@ class LevelGenerator {
       boxColors.add(palette[i % palette.length]);
     }
 
-    final screwBag = <ScrewColor>[];
-    for (final color in boxColors) {
-      screwBag.addAll([color, color, color]);
-    }
+    final allHoleIndices = List<int>.generate(totalHoles, (i) => i);
+    allHoleIndices.shuffle(rng);
 
     for (int i = 0; i < totalHoles; i++) {
-      if (i < activeScrewsCount) {
-        allHoleRefs[i].currentScrew = screwBag[i];
-      } else {
-        allHoleRefs[i].currentScrew = null;
+      allHoleRefs[i].currentScrew = null;
+    }
+
+    int holeOffset = 0;
+    for (int b = 0; b < numBoxes; b++) {
+      final color = boxColors[b];
+      final cap = boxCapacities[b];
+      for (int s = 0; s < cap; s++) {
+        allHoleRefs[allHoleIndices[holeOffset]].currentScrew = color;
+        holeOffset++;
       }
     }
 
-    final swapWindow = (2 + (sqrt(level) * 0.15).floor()).clamp(2, 6);
-    final swapRate = swapRateOverride ?? (0.15 + (sqrt(level) * 0.018)).clamp(0.15, 0.70);
-
-    if (level >= 3 || swapRateOverride != null) {
-      for (int i = 0; i < activeScrewsCount - 1; i++) {
-        if (rng.nextDouble() < swapRate) {
-          final nextIdx = min(activeScrewsCount - 1, i + 1 + rng.nextInt(swapWindow));
-          final temp = allHoleRefs[i].currentScrew;
-          allHoleRefs[i].currentScrew = allHoleRefs[nextIdx].currentScrew;
-          allHoleRefs[nextIdx].currentScrew = temp;
-        }
-      }
+    for (final plate in sortedPlates) {
+      plate.hadScrewsOnLoad = plate.holes.any((h) => h.currentScrew != null);
     }
 
-    final activeBox = ToolboxModel(targetColor: boxColors.first);
-    final pendingBoxes = boxColors.sublist(1).map((c) => ToolboxModel(targetColor: c)).toList();
+    final activeBox = ToolboxModel(
+      targetColor: boxColors.first,
+      capacity: boxCapacities.first,
+    );
+    final pendingBoxes = List.generate(
+      numBoxes - 1,
+      (i) => ToolboxModel(
+        targetColor: boxColors[i + 1],
+        capacity: boxCapacities[i + 1],
+      ),
+    );
 
     return blueprint.copyWith(
       activeBox: activeBox,

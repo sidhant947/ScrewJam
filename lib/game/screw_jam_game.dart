@@ -63,7 +63,7 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
     for (final plate in currentState.plates) {
       final remainingHoles = plate.holes.where((h) => h.currentScrew != null).toList();
 
-      if (remainingHoles.isEmpty) {
+      if (plate.hadScrewsOnLoad && remainingHoles.isEmpty) {
         if (!plate.isFalling) {
           plate.isFalling = true;
           plate.fallSpeedY = 140.0;

@@ -26,18 +26,7 @@ class ScrewJamApp extends StatelessWidget {
     return MaterialApp(
       title: 'Screw Jam',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(
-          surface: Color(0xFF121212),
-          primary: Colors.white,
-          onPrimary: Colors.black,
-          onSurface: Colors.white,
-          outline: Color(0xFF333333),
-        ),
-        useMaterial3: true,
-        fontFamily: 'Fredoka',
-      ),
+      theme: ThemeData(useMaterial3: true, fontFamily: 'Fredoka'),
       home: const HomeScreen(),
     );
   }

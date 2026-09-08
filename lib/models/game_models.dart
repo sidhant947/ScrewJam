@@ -157,6 +157,7 @@ class PlateModel {
   double angularVelocity;
   double opacity;
   Offset? pivotWorld;
+  bool hadScrewsOnLoad;
   double mass;
 
   PlateModel({
@@ -174,6 +175,7 @@ class PlateModel {
     this.angularVelocity = 0.0,
     this.opacity = 1.0,
     this.pivotWorld,
+    this.hadScrewsOnLoad = false,
     this.mass = 1.0,
   });
 
@@ -195,6 +197,7 @@ class PlateModel {
       angularVelocity: angularVelocity,
       opacity: opacity,
       pivotWorld: pivotWorld,
+      hadScrewsOnLoad: hadScrewsOnLoad,
       mass: mass,
     );
   }

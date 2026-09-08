@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_models.dart';
+import '../services/haptics.dart';
 import '../services/level_generator.dart';
 import '../services/storage_service.dart';
 
@@ -110,6 +111,8 @@ class GameNotifier extends StateNotifier<GameState> {
         score: state.score + 10,
       );
 
+      Haptics.light();
+
       if (updatedBox.isFull) {
         advanceBoxAndCheckWaiting();
       } else {
@@ -124,6 +127,8 @@ class GameNotifier extends StateNotifier<GameState> {
       final newWaiting = List<ScrewColor?>.from(state.waitingHoles);
       newWaiting[firstEmptyIdx] = screw;
 
+      Haptics.select();
+
       state = state.copyWith(
         waitingHoles: newWaiting,
       );
@@ -132,6 +137,7 @@ class GameNotifier extends StateNotifier<GameState> {
       return true;
     }
 
+    Haptics.heavy();
     return false;
   }
 
@@ -143,6 +149,7 @@ class GameNotifier extends StateNotifier<GameState> {
         activeBox: nextBox,
         pendingBoxes: newPending,
       );
+      Haptics.medium();
       _checkWaitingHolesForActiveBox();
     }
     _checkGameCompletion();
@@ -194,6 +201,7 @@ class GameNotifier extends StateNotifier<GameState> {
 
     if (!hasAnyScrews && !hasWaitingScrews) {
       state = state.copyWith(status: GameStatus.won);
+      Haptics.heavy();
       if (!state.isRandom) {
         final nextLvl = state.level + 1;
         StorageService.setHighestLevel(nextLvl);
@@ -209,6 +217,7 @@ class GameNotifier extends StateNotifier<GameState> {
       final canMatchActive = state.waitingHoles.any((s) => s == state.activeBox.targetColor);
       if (!canMatchActive) {
         state = state.copyWith(status: GameStatus.lost);
+        Haptics.heavy();
       }
     }
   }

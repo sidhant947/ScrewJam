@@ -5,6 +5,7 @@ import '../models/game_models.dart';
 import '../providers/game_provider.dart';
 import 'game_screen.dart';
 import 'levels_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -44,17 +45,9 @@ class HomeScreen extends ConsumerWidget {
         elevation: 0.5,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFFFFF),
-              Color(0xFFF1F5F9),
-              Color(0xFFE2E8F0),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.white,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -195,7 +188,44 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF6D28D9), width: 2.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0xFF6D28D9),
+                          offset: Offset(0, 6),
+                          blurRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'SETTINGS',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 const Spacer(flex: 1),
+
               ],
             ),
           ),
