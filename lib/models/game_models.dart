@@ -3,75 +3,91 @@ import 'package:flutter/material.dart';
 
 enum ScrewColor {
   coral(
-    primary: Color(0xFFFF4757),
-    dark: Color(0xFFC0392B),
-    highlight: Color(0xFFFF7675),
-    shadow: Color(0x6696281B),
+    defaultPrimary: Color(0xFFFF4757),
+    defaultDark: Color(0xFFC0392B),
+    defaultHighlight: Color(0xFFFF7675),
+    defaultShadow: Color(0x6696281B),
     label: 'Coral',
   ),
   cyan(
-    primary: Color(0xFF00CEC9),
-    dark: Color(0xFF009688),
-    highlight: Color(0xFF81ECEC),
-    shadow: Color(0x6600796B),
+    defaultPrimary: Color(0xFF00CEC9),
+    defaultDark: Color(0xFF009688),
+    defaultHighlight: Color(0xFF81ECEC),
+    defaultShadow: Color(0x6600796B),
     label: 'Cyan',
   ),
   blue(
-    primary: Color(0xFF0984E3),
-    dark: Color(0xFF0C2461),
-    highlight: Color(0xFF74B9FF),
-    shadow: Color(0x660A3D62),
+    defaultPrimary: Color(0xFF0984E3),
+    defaultDark: Color(0xFF0C2461),
+    defaultHighlight: Color(0xFF74B9FF),
+    defaultShadow: Color(0x660A3D62),
     label: 'Blue',
   ),
   yellow(
-    primary: Color(0xFFF1C40F),
-    dark: Color(0xFFD35400),
-    highlight: Color(0xFFFFF275),
-    shadow: Color(0x66B7950B),
+    defaultPrimary: Color(0xFFF1C40F),
+    defaultDark: Color(0xFFD35400),
+    defaultHighlight: Color(0xFFFFF275),
+    defaultShadow: Color(0x66B7950B),
     label: 'Yellow',
   ),
   purple(
-    primary: Color(0xFF9B59B6),
-    dark: Color(0xFF6C3483),
-    highlight: Color(0xFFD2B4DE),
-    shadow: Color(0x66512E5F),
+    defaultPrimary: Color(0xFF9B59B6),
+    defaultDark: Color(0xFF6C3483),
+    defaultHighlight: Color(0xFFD2B4DE),
+    defaultShadow: Color(0x66512E5F),
     label: 'Purple',
   ),
   lime(
-    primary: Color(0xFF2ECC71),
-    dark: Color(0xFF1E8449),
-    highlight: Color(0xFFA9DFBF),
-    shadow: Color(0x66145A32),
+    defaultPrimary: Color(0xFF2ECC71),
+    defaultDark: Color(0xFF1E8449),
+    defaultHighlight: Color(0xFFA9DFBF),
+    defaultShadow: Color(0x66145A32),
     label: 'Lime',
   ),
   pink(
-    primary: Color(0xFFE84393),
-    dark: Color(0xFFAD1457),
-    highlight: Color(0xFFFD79A8),
-    shadow: Color(0x66880E4F),
+    defaultPrimary: Color(0xFFE84393),
+    defaultDark: Color(0xFFAD1457),
+    defaultHighlight: Color(0xFFFD79A8),
+    defaultShadow: Color(0x66880E4F),
     label: 'Pink',
   ),
   orange(
-    primary: Color(0xFFE67E22),
-    dark: Color(0xFFA04000),
-    highlight: Color(0xFFF39C12),
-    shadow: Color(0x667E5109),
+    defaultPrimary: Color(0xFFE67E22),
+    defaultDark: Color(0xFFA04000),
+    defaultHighlight: Color(0xFFF39C12),
+    defaultShadow: Color(0x667E5109),
     label: 'Orange',
   );
 
-  final Color primary;
-  final Color dark;
-  final Color highlight;
-  final Color shadow;
+  final Color defaultPrimary;
+  final Color defaultDark;
+  final Color defaultHighlight;
+  final Color defaultShadow;
   final String label;
 
+  static final Map<ScrewColor, Color> customColors = {};
+
   const ScrewColor({
-    required this.primary,
-    required this.dark,
-    required this.highlight,
-    required this.shadow,
+    required this.defaultPrimary,
+    required this.defaultDark,
+    required this.defaultHighlight,
+    required this.defaultShadow,
     required this.label,
   });
+
+  Color get primary => customColors[this] ?? defaultPrimary;
+
+  Color get dark => customColors.containsKey(this)
+      ? Color.alphaBlend(Colors.black.withValues(alpha: 0.35), primary)
+      : defaultDark;
+
+  Color get highlight => customColors.containsKey(this)
+      ? Color.alphaBlend(Colors.white.withValues(alpha: 0.35), primary)
+      : defaultHighlight;
+
+  Color get shadow => customColors.containsKey(this)
+      ? primary.withValues(alpha: 0.4)
+      : defaultShadow;
 }
 
 enum ScrewSlotType {
@@ -470,7 +486,7 @@ class GameState {
     required this.activeBox,
     required this.pendingBoxes,
     required this.waitingHoles,
-    this.waitingHolesCapacity = 5,
+    this.waitingHolesCapacity = 4,
     this.status = GameStatus.playing,
     this.score = 0,
   });

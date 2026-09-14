@@ -351,9 +351,10 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
     final rawTouchPos = event.localPosition.toOffset();
     final touchPos = screenToBoard(rawTouchPos);
 
-    final candidates = <({PlateModel plate, ScrewHoleModel hole, double distance, int layer})>[];
+    final candidates = <({PlateModel plate, ScrewHoleModel hole, double distance, int layer, int index})>[];
 
-    for (final plate in currentState.plates) {
+    for (int i = 0; i < currentState.plates.length; i++) {
+      final plate = currentState.plates[i];
       if (plate.isFalling) continue;
 
       for (final hole in plate.holes) {
@@ -369,6 +370,7 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
               hole: hole,
               distance: dist,
               layer: plate.layer,
+              index: i,
             ));
           }
         }
@@ -379,32 +381,38 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
       candidates.sort((a, b) {
         final layerCmp = b.layer.compareTo(a.layer);
         if (layerCmp != 0) return layerCmp;
+        final idxCmp = b.index.compareTo(a.index);
+        if (idxCmp != 0) return idxCmp;
         return a.distance.compareTo(b.distance);
       });
 
-      final best = candidates.first;
+      for (final candidate in candidates) {
+        bool coveredByHigherBody = false;
+        for (int i = 0; i < currentState.plates.length; i++) {
+          final plate = currentState.plates[i];
+          if (plate.isFalling) continue;
 
-      bool coveredByHigherBody = false;
-      for (final plate in currentState.plates) {
-        if (plate.isFalling) continue;
-        if (plate.layer > best.plate.layer) {
-          if (notifier.isPointInsidePlate(touchPos, plate)) {
-            coveredByHigherBody = true;
-            break;
+          final isHigher = plate.layer > candidate.plate.layer ||
+              (plate.layer == candidate.plate.layer && i > candidate.index);
+
+          if (isHigher) {
+            if (notifier.isPointInsidePlate(touchPos, plate)) {
+              coveredByHigherBody = true;
+              break;
+            }
           }
         }
-      }
 
-      if (!coveredByHigherBody) {
-        notifier.handleScrewTap(best.plate, best.hole, currentState.plates);
+        if (!coveredByHigherBody) {
+          notifier.handleScrewTap(candidate.plate, candidate.hole, currentState.plates);
+          return;
+        }
       }
       return;
     }
 
-    final sortedPlatesDesc = List<PlateModel>.from(currentState.plates)
-      ..sort((a, b) => b.layer.compareTo(a.layer));
-
-    for (final plate in sortedPlatesDesc) {
+    for (int i = currentState.plates.length - 1; i >= 0; i--) {
+      final plate = currentState.plates[i];
       if (plate.isFalling) continue;
       if (notifier.isPointInsidePlate(touchPos, plate)) {
         return;

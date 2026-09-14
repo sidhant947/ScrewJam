@@ -52,6 +52,8 @@ class GameNotifier extends StateNotifier<GameState> {
   bool isHoleCoveredByHigherPlate(PlateModel targetPlate, ScrewHoleModel hole, [List<PlateModel>? platesList]) {
     final activePlates = platesList ?? state.plates;
     final globalPos = getGlobalHolePosition(targetPlate, hole);
+    final targetIdx = activePlates.indexOf(targetPlate);
+
     const screwRadius = 15.0;
     final checkOffsets = <Offset>[
       Offset.zero,
@@ -62,10 +64,15 @@ class GameNotifier extends StateNotifier<GameState> {
       checkOffsets.add(Offset(cos(angle) * (screwRadius * 0.65), sin(angle) * (screwRadius * 0.65)));
     }
 
-    for (final plate in activePlates) {
+    for (int i = 0; i < activePlates.length; i++) {
+      final plate = activePlates[i];
       if (plate.isFalling) continue;
       if (plate.id == targetPlate.id) continue;
-      if (plate.layer > targetPlate.layer) {
+
+      final isHigher = plate.layer > targetPlate.layer ||
+          (plate.layer == targetPlate.layer && i > targetIdx);
+
+      if (isHigher) {
         for (final offset in checkOffsets) {
           if (isPointInsidePlate(globalPos + offset, plate)) {
             return true;
@@ -138,6 +145,7 @@ class GameNotifier extends StateNotifier<GameState> {
     }
 
     Haptics.heavy();
+    state = state.copyWith(status: GameStatus.lost);
     return false;
   }
 
@@ -210,15 +218,6 @@ class GameNotifier extends StateNotifier<GameState> {
         }
       }
       return;
-    }
-
-    final isWaitingFull = !state.waitingHoles.any((s) => s == null);
-    if (isWaitingFull) {
-      final canMatchActive = state.waitingHoles.any((s) => s == state.activeBox.targetColor);
-      if (!canMatchActive) {
-        state = state.copyWith(status: GameStatus.lost);
-        Haptics.heavy();
-      }
     }
   }
 }

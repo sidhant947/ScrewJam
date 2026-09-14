@@ -347,7 +347,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.purple),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -439,7 +439,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.yellow),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -512,7 +512,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.coral),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -568,7 +568,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.lime),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -640,7 +640,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.blue),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -710,7 +710,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.pink),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -780,7 +780,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.cyan),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -883,7 +883,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.orange),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -985,7 +985,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.purple),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -1121,7 +1121,7 @@ class LevelGenerator {
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.orange),
       pendingBoxes: const [],
-      waitingHoles: List.filled(5, null),
+      waitingHoles: List.filled(4, null),
     );
   }
 
@@ -1146,6 +1146,8 @@ class LevelGenerator {
 
   static bool _isHoleCoveredByHigherPlate(PlateModel targetPlate, ScrewHoleModel hole, List<PlateModel> activePlates) {
     final globalPos = _getGlobalHolePosition(targetPlate, hole);
+    final targetIdx = activePlates.indexOf(targetPlate);
+
     const screwRadius = 15.0;
     final checkOffsets = <Offset>[
       Offset.zero,
@@ -1156,10 +1158,15 @@ class LevelGenerator {
       checkOffsets.add(Offset(cos(angle) * (screwRadius * 0.65), sin(angle) * (screwRadius * 0.65)));
     }
 
-    for (final plate in activePlates) {
+    for (int i = 0; i < activePlates.length; i++) {
+      final plate = activePlates[i];
       if (plate.isFalling) continue;
       if (plate.id == targetPlate.id) continue;
-      if (plate.layer > targetPlate.layer) {
+
+      final isHigher = plate.layer > targetPlate.layer ||
+          (plate.layer == targetPlate.layer && i > targetIdx);
+
+      if (isHigher) {
         for (final offset in checkOffsets) {
           if (_isPointInsidePlate(globalPos + offset, plate)) {
             return true;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum AppThemeId { clean, dark, forest, ocean, sunset }
+enum AppThemeId { system, clean, dark, forest, ocean, sunset }
 
 class AppThemeData {
   final AppThemeId id;
@@ -94,6 +94,59 @@ class AppThemeData {
     required this.dialogBg,
     required this.switchActiveColor,
   });
+
+  AppThemeData copyWith({
+    AppThemeId? id,
+    String? name,
+    String? emoji,
+  }) {
+    return AppThemeData(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      emoji: emoji ?? this.emoji,
+      background: background,
+      surface: surface,
+      surfaceVariant: surfaceVariant,
+      border: border,
+      borderStrong: borderStrong,
+      textPrimary: textPrimary,
+      textSecondary: textSecondary,
+      textMuted: textMuted,
+      appBarBg: appBarBg,
+      appBarFg: appBarFg,
+      waitingTray: waitingTray,
+      waitingTrayBorder: waitingTrayBorder,
+      toolboxHandle: toolboxHandle,
+      toolboxHandleBorder: toolboxHandleBorder,
+      playBg: playBg,
+      playBorder: playBorder,
+      playShadow: playShadow,
+      randomBg: randomBg,
+      randomBorder: randomBorder,
+      randomShadow: randomShadow,
+      levelsBg: levelsBg,
+      levelsBorder: levelsBorder,
+      levelsShadow: levelsShadow,
+      settingsBg: settingsBg,
+      settingsBorder: settingsBorder,
+      settingsShadow: settingsShadow,
+      levelCurrent: levelCurrent,
+      levelCurrentBorder: levelCurrentBorder,
+      levelCurrentShadow: levelCurrentShadow,
+      levelMilestone: levelMilestone,
+      levelMilestoneBorder: levelMilestoneBorder,
+      levelMilestoneShadow: levelMilestoneShadow,
+      levelNormal: levelNormal,
+      levelNormalBorder: levelNormalBorder,
+      levelNormalShadow: levelNormalShadow,
+      levelLocked: levelLocked,
+      levelLockedBorder: levelLockedBorder,
+      levelLockedIcon: levelLockedIcon,
+      cardBg: cardBg,
+      dialogBg: dialogBg,
+      switchActiveColor: switchActiveColor,
+    );
+  }
 
   ThemeData toMaterialTheme() {
     return ThemeData(
@@ -381,7 +434,64 @@ class AppThemes {
     switchActiveColor: Color(0xFFFF6B35),
   );
 
-  static const all = [clean, dark, forest, ocean, sunset];
+  static const system = AppThemeData(
+    id: AppThemeId.system,
+    name: 'Follow System',
+    emoji: '📱',
+    background: Color(0xFFFFFFFF),
+    surface: Color(0xFFF8FAFC),
+    surfaceVariant: Color(0xFFE2E8F0),
+    border: Color(0xFF94A3B8),
+    borderStrong: Color(0xFF64748B),
+    textPrimary: Color(0xFF1E293B),
+    textSecondary: Color(0xFF475569),
+    textMuted: Color(0xFF64748B),
+    appBarBg: Color(0xFFFFFFFF),
+    appBarFg: Color(0xFF1E293B),
+    waitingTray: Color(0xFFCBD5E1),
+    waitingTrayBorder: Color(0xFF94A3B8),
+    toolboxHandle: Color(0xFFE2E8F0),
+    toolboxHandleBorder: Color(0xFF94A3B8),
+    playBg: Color(0xFF10B981),
+    playBorder: Color(0xFF047857),
+    playShadow: Color(0xFF047857),
+    randomBg: Color(0xFFFFA502),
+    randomBorder: Color(0xFFCC8400),
+    randomShadow: Color(0xFFCC8400),
+    levelsBg: Color(0xFF3897F0),
+    levelsBorder: Color(0xFF1E6BB8),
+    levelsShadow: Color(0xFF1E6BB8),
+    settingsBg: Color(0xFF8B5CF6),
+    settingsBorder: Color(0xFF6D28D9),
+    settingsShadow: Color(0xFF6D28D9),
+    levelCurrent: Color(0xFF10B981),
+    levelCurrentBorder: Color(0xFF047857),
+    levelCurrentShadow: Color(0xFF047857),
+    levelMilestone: Color(0xFFFF9F43),
+    levelMilestoneBorder: Color(0xFFEE5253),
+    levelMilestoneShadow: Color(0xFFEE5253),
+    levelNormal: Color(0xFF3897F0),
+    levelNormalBorder: Color(0xFF1E6BB8),
+    levelNormalShadow: Color(0xFF1E6BB8),
+    levelLocked: Color(0xFFCBD5E1),
+    levelLockedBorder: Color(0xFF94A3B8),
+    levelLockedIcon: Color(0xFF64748B),
+    cardBg: Color(0xFFFFFFFF),
+    dialogBg: Color(0xFFFFFFFF),
+    switchActiveColor: Color(0xFF10B981),
+  );
+
+  static const all = [system, clean, dark, forest, ocean, sunset];
+
+  static AppThemeData resolve(AppThemeId id, [Brightness? platformBrightness]) {
+    if (id == AppThemeId.system) {
+      final brightness = platformBrightness ??
+          WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      final base = brightness == Brightness.dark ? dark : clean;
+      return base.copyWith(id: AppThemeId.system, name: 'Follow System', emoji: '📱');
+    }
+    return fromId(id);
+  }
 
   static AppThemeData fromId(AppThemeId id) {
     return all.firstWhere((t) => t.id == id, orElse: () => clean);

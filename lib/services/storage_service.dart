@@ -38,4 +38,23 @@ class StorageService {
   static Future<void> setThemeId(String themeId) async {
     await _box.put(keyTheme, themeId);
   }
+
+  static int? getCustomScrewColor(String colorName) {
+    return _box.get('screw_color_$colorName');
+  }
+
+  static Future<void> setCustomScrewColor(String colorName, int? value) async {
+    if (value == null) {
+      await _box.delete('screw_color_$colorName');
+    } else {
+      await _box.put('screw_color_$colorName', value);
+    }
+  }
+
+  static Future<void> resetScrewColors() async {
+    final keysToDelete = _box.keys.where((k) => k.toString().startsWith('screw_color_')).toList();
+    for (final k in keysToDelete) {
+      await _box.delete(k);
+    }
+  }
 }
