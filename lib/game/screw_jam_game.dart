@@ -5,9 +5,32 @@ import 'package:flutter/material.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
 
+class FlyingScrew {
+  final String holeId;
+  final ScrewColor screw;
+  final ScrewSlotType slotType;
+  final Offset startPos;
+  final Offset targetPos;
+  double progress = 0.0;
+  final double duration;
+  final VoidCallback onComplete;
+
+  FlyingScrew({
+    required this.holeId,
+    required this.screw,
+    required this.slotType,
+    required this.startPos,
+    required this.targetPos,
+    required this.onComplete,
+    this.duration = 0.26,
+  });
+}
+
 class ScrewJamGame extends FlameGame with TapCallbacks {
   final GameNotifier notifier;
   GameState currentState;
+  final List<FlyingScrew> _flyingScrews = [];
+  final Set<String> _animatingHoleIds = {};
 
   ScrewJamGame({
     required this.notifier,
@@ -50,6 +73,10 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
   }
 
   void updateState(GameState newState) {
+    if (newState.level != currentState.level || newState.status != currentState.status) {
+      _flyingScrews.clear();
+      _animatingHoleIds.clear();
+    }
     currentState = newState;
   }
 
@@ -59,6 +86,16 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+
+    for (int i = _flyingScrews.length - 1; i >= 0; i--) {
+      final fs = _flyingScrews[i];
+      fs.progress += dt / fs.duration;
+      if (fs.progress >= 1.0) {
+        final completed = _flyingScrews.removeAt(i);
+        _animatingHoleIds.remove(completed.holeId);
+        completed.onComplete();
+      }
+    }
 
     for (final plate in currentState.plates) {
       final remainingHoles = plate.holes.where((h) => h.currentScrew != null).toList();
@@ -136,6 +173,57 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
       if (plate.opacity > 0.01) {
         _renderPlate(canvas, plate);
       }
+    }
+
+    for (final fs in _flyingScrews) {
+      _renderFlyingScrew(canvas, fs);
+    }
+
+    canvas.restore();
+  }
+
+  void _renderFlyingScrew(Canvas canvas, FlyingScrew fs) {
+    final t = Curves.easeOutCubic.transform(fs.progress.clamp(0.0, 1.0));
+    final basePos = Offset.lerp(fs.startPos, fs.targetPos, t)!;
+    final arcHeight = -45.0 * sin(fs.progress.clamp(0.0, 1.0) * pi);
+    final pos = basePos + Offset(0, arcHeight);
+    final scale = 1.0 + 0.35 * sin(fs.progress.clamp(0.0, 1.0) * pi);
+    final angle = fs.progress * 4.0 * pi;
+
+    canvas.save();
+    canvas.translate(pos.dx, pos.dy);
+    canvas.scale(scale, scale);
+    canvas.rotate(angle);
+
+    final screwShadowPaint = Paint()
+      ..color = fs.screw.shadow.withValues(alpha: 0.5)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8.0 + scale * 4.0);
+    canvas.drawCircle(const Offset(0, 5), 18, screwShadowPaint);
+
+    final screwBodyPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.4),
+        radius: 0.85,
+        colors: [
+          fs.screw.highlight,
+          fs.screw.primary,
+          fs.screw.dark,
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(Rect.fromCircle(center: Offset.zero, radius: 16));
+
+    canvas.drawCircle(Offset.zero, 16, screwBodyPaint);
+
+    final borderScrew = Paint()
+      ..color = Colors.white.withValues(alpha: 0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawCircle(Offset.zero, 16, borderScrew);
+
+    if (fs.slotType == ScrewSlotType.star) {
+      _renderStarScrewSlot(canvas, Offset.zero, fs.screw.dark);
+    } else {
+      _renderCrossScrewSlot(canvas, Offset.zero, fs.screw.dark);
     }
 
     canvas.restore();
@@ -264,7 +352,7 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
     canvas.drawCircle(holePos, 14, holeInnerPaint);
     canvas.drawCircle(holePos + const Offset(0, 1.5), 11, holeDepthPaint);
 
-    if (hole.currentScrew != null) {
+    if (hole.currentScrew != null && !_animatingHoleIds.contains(hole.id)) {
       final screw = hole.currentScrew!;
 
       final screwShadowPaint = Paint()
@@ -404,7 +492,42 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
         }
 
         if (!coveredByHigherBody) {
-          notifier.handleScrewTap(candidate.plate, candidate.hole, currentState.plates);
+          if (_animatingHoleIds.contains(candidate.hole.id)) return;
+
+          final screwColor = candidate.hole.currentScrew!;
+          final slotType = candidate.hole.slotType;
+          final startPos = notifier.getGlobalHolePosition(candidate.plate, candidate.hole);
+          Offset targetPos;
+
+          if (currentState.activeBox.targetColor == screwColor && !currentState.activeBox.isFull) {
+            final slotIdx = currentState.activeBox.collected.length;
+            final targetScreenX = size.x / 2.0 + (-34.0 + slotIdx * 34.0);
+            final targetScreenY = -95.0;
+            targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
+          } else {
+            final emptyIdx = currentState.waitingHoles.indexWhere((s) => s == null);
+            if (emptyIdx != -1) {
+              final targetScreenX = size.x / 2.0 + ((emptyIdx - (currentState.waitingHolesCapacity - 1) / 2.0) * 42.0);
+              final targetScreenY = -32.0;
+              targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
+            } else {
+              targetPos = startPos;
+            }
+          }
+
+          _animatingHoleIds.add(candidate.hole.id);
+
+          _flyingScrews.add(FlyingScrew(
+            holeId: candidate.hole.id,
+            screw: screwColor,
+            slotType: slotType,
+            startPos: startPos,
+            targetPos: targetPos,
+            duration: 0.26,
+            onComplete: () {
+              notifier.handleScrewTap(candidate.plate, candidate.hole, currentState.plates);
+            },
+          ));
           return;
         }
       }

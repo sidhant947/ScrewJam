@@ -225,7 +225,36 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               child: _buildMiniPendingBox(pendingBoxes.first, appTheme),
             ),
           Center(
-            child: _buildMainToolbox(activeBox, appTheme),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 380),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                final slideAnimation = Tween<Offset>(
+                  begin: const Offset(-0.35, 0.0),
+                  end: Offset.zero,
+                ).animate(animation);
+                final scaleAnimation = Tween<double>(
+                  begin: 0.82,
+                  end: 1.0,
+                ).animate(animation);
+
+                return SlideTransition(
+                  position: slideAnimation,
+                  child: ScaleTransition(
+                    scale: scaleAnimation,
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey('${activeBox.id}_${activeBox.targetColor.name}'),
+                child: _buildMainToolbox(activeBox, appTheme),
+              ),
+            ),
           ),
         ],
       ),

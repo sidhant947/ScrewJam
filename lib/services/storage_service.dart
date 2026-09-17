@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../models/game_models.dart';
 
 class StorageService {
   static const String boxName = 'game_data';
@@ -9,6 +11,18 @@ class StorageService {
   static Future<void> init() async {
     await Hive.initFlutter();
     await Hive.openBox(boxName);
+    loadCustomScrewColors();
+  }
+
+  static void loadCustomScrewColors() {
+    for (final color in ScrewColor.values) {
+      final val = getCustomScrewColor(color.name);
+      if (val != null) {
+        ScrewColor.customColors[color] = Color(val);
+      } else {
+        ScrewColor.customColors.remove(color);
+      }
+    }
   }
 
   static Box get _box => Hive.box(boxName);

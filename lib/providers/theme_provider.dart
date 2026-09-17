@@ -55,14 +55,7 @@ class ScrewColorsNotifier extends StateNotifier<int> {
   }
 
   void _loadFromStorage() {
-    for (final color in ScrewColor.values) {
-      final val = StorageService.getCustomScrewColor(color.name);
-      if (val != null) {
-        ScrewColor.customColors[color] = Color(val);
-      } else {
-        ScrewColor.customColors.remove(color);
-      }
-    }
+    StorageService.loadCustomScrewColors();
     state++;
   }
 
