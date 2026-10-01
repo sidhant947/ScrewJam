@@ -41,3 +41,10 @@ jobs:
         run: |
           flutter build apk --release
           flutter build apk --release --split-per-abi
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks-${{ github.event.inputs.version }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk         

@@ -11,6 +11,8 @@ class FlyingScrew {
   final ScrewSlotType slotType;
   final Offset startPos;
   final Offset targetPos;
+  final bool toActiveBox;
+  final int targetSlot;
   double progress = 0.0;
   final double duration;
   final VoidCallback onComplete;
@@ -21,6 +23,8 @@ class FlyingScrew {
     required this.slotType,
     required this.startPos,
     required this.targetPos,
+    required this.toActiveBox,
+    required this.targetSlot,
     required this.onComplete,
     this.duration = 0.26,
   });
@@ -87,14 +91,18 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
   void update(double dt) {
     super.update(dt);
 
-    for (int i = _flyingScrews.length - 1; i >= 0; i--) {
-      final fs = _flyingScrews[i];
+    final completed = <FlyingScrew>[];
+    for (final fs in _flyingScrews) {
       fs.progress += dt / fs.duration;
       if (fs.progress >= 1.0) {
-        final completed = _flyingScrews.removeAt(i);
-        _animatingHoleIds.remove(completed.holeId);
-        completed.onComplete();
+        completed.add(fs);
       }
+    }
+
+    for (final fs in completed) {
+      _flyingScrews.remove(fs);
+      _animatingHoleIds.remove(fs.holeId);
+      fs.onComplete();
     }
 
     for (final plate in currentState.plates) {
@@ -498,16 +506,38 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
           final slotType = candidate.hole.slotType;
           final startPos = notifier.getGlobalHolePosition(candidate.plate, candidate.hole);
           Offset targetPos;
+          bool toActiveBox = false;
+          int targetSlot = -1;
 
-          if (currentState.activeBox.targetColor == screwColor && !currentState.activeBox.isFull) {
-            final slotIdx = currentState.activeBox.collected.length;
-            final targetScreenX = size.x / 2.0 + (-34.0 + slotIdx * 34.0);
+          final flyingToBox = _flyingScrews.where((fs) => fs.toActiveBox).length;
+          final activeBox = currentState.activeBox;
+
+          if (activeBox.targetColor == screwColor &&
+              (activeBox.collected.length + flyingToBox) < activeBox.capacity) {
+            toActiveBox = true;
+            targetSlot = activeBox.collected.length + flyingToBox;
+            final spacing = 169.0 / (activeBox.capacity + 1.0);
+            final targetScreenX =
+                size.x / 2.0 + (targetSlot - (activeBox.capacity - 1) / 2.0) * spacing;
             final targetScreenY = -95.0;
             targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
           } else {
-            final emptyIdx = currentState.waitingHoles.indexWhere((s) => s == null);
+            final reservedWaiting = _flyingScrews
+                .where((fs) => !fs.toActiveBox && fs.targetSlot >= 0)
+                .map((fs) => fs.targetSlot)
+                .toSet();
+            int emptyIdx = -1;
+            for (int i = 0; i < currentState.waitingHolesCapacity; i++) {
+              if (currentState.waitingHoles[i] == null && !reservedWaiting.contains(i)) {
+                emptyIdx = i;
+                break;
+              }
+            }
+
             if (emptyIdx != -1) {
-              final targetScreenX = size.x / 2.0 + ((emptyIdx - (currentState.waitingHolesCapacity - 1) / 2.0) * 42.0);
+              targetSlot = emptyIdx;
+              final targetScreenX = size.x / 2.0 +
+                  ((emptyIdx - (currentState.waitingHolesCapacity - 1) / 2.0) * 42.0);
               final targetScreenY = -32.0;
               targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
             } else {
@@ -523,9 +553,17 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
             slotType: slotType,
             startPos: startPos,
             targetPos: targetPos,
+            toActiveBox: toActiveBox,
+            targetSlot: targetSlot,
             duration: 0.26,
             onComplete: () {
-              notifier.handleScrewTap(candidate.plate, candidate.hole, currentState.plates);
+              notifier.handleScrewTap(
+                candidate.plate,
+                candidate.hole,
+                currentState.plates,
+                toActiveBox,
+                targetSlot,
+              );
             },
           ));
           return;

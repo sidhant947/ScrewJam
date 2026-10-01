@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/app_theme.dart';
 import '../models/game_models.dart';
 import '../providers/theme_provider.dart';
@@ -49,6 +50,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           children: [
+            GestureDetector(
+              onTap: () {
+                Haptics.select();
+                launchUrl(
+                  Uri.parse('https://ko-fi.com/sidhant947/tiers'),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: currentTheme.border.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.favorite_rounded,
+                      color: currentTheme.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Become a Backer',
+                      style: TextStyle(
+                        color: currentTheme.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      color: currentTheme.textMuted,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
               child: Text(
@@ -65,7 +113,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               decoration: BoxDecoration(
                 color: currentTheme.cardBg,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: currentTheme.border.withValues(alpha: 0.5), width: 1.5),
+                border: Border.all(
+                  color: currentTheme.border.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -75,7 +126,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
               child: SwitchListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
                 title: Text(
                   'Haptic Feedback',
                   style: TextStyle(
@@ -109,7 +163,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               decoration: BoxDecoration(
                 color: currentTheme.cardBg,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: currentTheme.border.withValues(alpha: 0.5), width: 1.5),
+                border: Border.all(
+                  color: currentTheme.border.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -125,7 +182,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   return Column(
                     children: [
                       ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 2,
+                        ),
                         title: Text(
                           theme.name,
                           style: TextStyle(
@@ -135,7 +195,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                         trailing: isSelected
-                            ? Icon(Icons.check_rounded, color: currentTheme.switchActiveColor, size: 24)
+                            ? Icon(
+                                Icons.check_rounded,
+                                color: currentTheme.switchActiveColor,
+                                size: 24,
+                              )
                             : null,
                         onTap: () {
                           Haptics.select();
@@ -192,7 +256,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               decoration: BoxDecoration(
                 color: currentTheme.cardBg,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: currentTheme.border.withValues(alpha: 0.5), width: 1.5),
+                border: Border.all(
+                  color: currentTheme.border.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -214,7 +281,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _showScrewColorPicker(context, screwColor, currentTheme);
                     },
                     child: Center(
-                      child: ScrewPreviewWidget(screwColor: screwColor, size: 44),
+                      child: ScrewPreviewWidget(
+                        screwColor: screwColor,
+                        size: 44,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -226,9 +296,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showScrewColorPicker(BuildContext context, ScrewColor screwColor, AppThemeData appTheme) {
+  void _showScrewColorPicker(
+    BuildContext context,
+    ScrewColor screwColor,
+    AppThemeData appTheme,
+  ) {
     final initialColor = screwColor.primary;
-    final initialHex = initialColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+    final initialHex = initialColor
+        .toARGB32()
+        .toRadixString(16)
+        .padLeft(8, '0')
+        .substring(2)
+        .toUpperCase();
     final controller = TextEditingController(text: initialHex);
 
     showDialog(
@@ -244,7 +323,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(width: 10),
                   Text(
                     '${screwColor.label} Hex Color',
-                    style: TextStyle(color: appTheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                    style: TextStyle(
+                      color: appTheme.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
                   ),
                 ],
               ),
@@ -258,21 +341,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     controller: controller,
                     autofocus: true,
                     maxLength: 6,
-                    style: TextStyle(color: appTheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2.0),
+                    style: TextStyle(
+                      color: appTheme.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      letterSpacing: 2.0,
+                    ),
                     decoration: InputDecoration(
                       prefixText: '# ',
-                      prefixStyle: TextStyle(color: appTheme.textMuted, fontWeight: FontWeight.w900, fontSize: 18),
+                      prefixStyle: TextStyle(
+                        color: appTheme.textMuted,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
                       counterText: '',
                       filled: true,
                       fillColor: appTheme.surfaceVariant,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     onChanged: (val) {
                       final clean = val.replaceAll('#', '').trim();
                       if (clean.length == 6) {
                         final parsed = int.tryParse('0xFF$clean');
                         if (parsed != null) {
-                          ref.read(screwColorsProvider.notifier).setColor(screwColor, Color(parsed));
+                          ref
+                              .read(screwColorsProvider.notifier)
+                              .setColor(screwColor, Color(parsed));
                           setDialogState(() {});
                         }
                       }
@@ -285,27 +382,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       TextButton(
                         onPressed: () {
                           Haptics.select();
-                          ref.read(screwColorsProvider.notifier).resetColor(screwColor);
-                          final defaultHex = screwColor.defaultPrimary.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+                          ref
+                              .read(screwColorsProvider.notifier)
+                              .resetColor(screwColor);
+                          final defaultHex = screwColor.defaultPrimary
+                              .toARGB32()
+                              .toRadixString(16)
+                              .padLeft(8, '0')
+                              .substring(2)
+                              .toUpperCase();
                           controller.text = defaultHex;
                           setDialogState(() {});
                         },
                         child: Text(
                           'Reset Default',
-                          style: TextStyle(color: appTheme.textMuted, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            color: appTheme.textMuted,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: appTheme.switchActiveColor,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         onPressed: () {
                           Haptics.select();
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w900)),
+                        child: const Text(
+                          'Done',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
                       ),
                     ],
                   ),
@@ -357,11 +469,7 @@ class _ScrewPreviewPainter extends CustomPainter {
       ..shader = RadialGradient(
         center: const Alignment(-0.35, -0.4),
         radius: 0.85,
-        colors: [
-          screwColor.highlight,
-          screwColor.primary,
-          screwColor.dark,
-        ],
+        colors: [screwColor.highlight, screwColor.primary, screwColor.dark],
         stops: const [0.0, 0.55, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: r));
 

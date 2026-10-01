@@ -102,14 +102,23 @@ class GameNotifier extends StateNotifier<GameState> {
     return getPlatePath(plate).contains(localPt);
   }
 
-  bool handleScrewTap(PlateModel plate, ScrewHoleModel hole, [List<PlateModel>? livePlates]) {
+  bool handleScrewTap(
+    PlateModel plate,
+    ScrewHoleModel hole, [
+    List<PlateModel>? livePlates,
+    bool? toActiveBox,
+    int? targetSlot,
+  ]) {
     if (state.status != GameStatus.playing) return false;
     if (hole.currentScrew == null) return false;
     if (isHoleCoveredByHigherPlate(plate, hole, livePlates)) return false;
 
     final screw = hole.currentScrew!;
 
-    if (state.activeBox.targetColor == screw && !state.activeBox.isFull) {
+    final shouldGoToActiveBox = toActiveBox ??
+        (state.activeBox.targetColor == screw && !state.activeBox.isFull);
+
+    if (shouldGoToActiveBox && !state.activeBox.isFull) {
       hole.currentScrew = null;
 
       final updatedBox = state.activeBox.addScrew(screw);
@@ -128,11 +137,17 @@ class GameNotifier extends StateNotifier<GameState> {
       return true;
     }
 
-    final firstEmptyIdx = state.waitingHoles.indexWhere((s) => s == null);
-    if (firstEmptyIdx != -1) {
+    final emptyIdx = (targetSlot != null &&
+            targetSlot >= 0 &&
+            targetSlot < state.waitingHoles.length &&
+            state.waitingHoles[targetSlot] == null)
+        ? targetSlot
+        : state.waitingHoles.indexWhere((s) => s == null);
+
+    if (emptyIdx != -1) {
       hole.currentScrew = null;
       final newWaiting = List<ScrewColor?>.from(state.waitingHoles);
-      newWaiting[firstEmptyIdx] = screw;
+      newWaiting[emptyIdx] = screw;
 
       Haptics.select();
 

@@ -27,47 +27,73 @@ class LevelGenerator {
     final effectiveSeed = seed ?? (level * 10007 + 733);
     final rng = Random(effectiveSeed);
 
-    final targetPlatesCount = (5 + (sqrt(level) * 0.95) + (level * 0.02)).floor().clamp(5, 36);
-    final targetLayers = (3 + (sqrt(level) * 0.35)).floor().clamp(3, 14);
+    final isMilestone5 = level % 5 == 0 && level % 10 != 0;
+    final isBoss = level % 10 == 0;
 
-    final archetypeCategory = archetypeOverride ?? (seed != null ? rng.nextInt(10) : ((level - 1) % 10));
+    var targetPlatesCount = (5 + (sqrt(level) * 0.95) + (level * 0.02)).floor().clamp(5, 36);
+    var targetLayers = (3 + (sqrt(level) * 0.35)).floor().clamp(3, 14);
 
-    GameState state;
-    switch (archetypeCategory) {
-      case 0:
-        state = _buildSymmetricalLattice(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 1:
-        state = _buildInterlockingCogwheelMatrix(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 2:
-        state = _buildCornerLabyrinthBrackets(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 3:
-        state = _buildCantileverTrussBridge(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 4:
-        state = _buildConcentricVaultFrames(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 5:
-        state = _buildRadialClockMechanism(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 6:
-        state = _buildCurvedAnchorRibcage(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 7:
-        state = _buildSweetTreatsAssembly(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 8:
-        state = _buildHeartWingsMandala(level, targetPlatesCount, targetLayers, rng);
-        break;
-      case 9:
-      default:
-        state = _buildMasterCompoundMechanism(level, targetPlatesCount, targetLayers, rng);
-        break;
+    if (isBoss) {
+      targetPlatesCount = (targetPlatesCount + 5).clamp(5, 36);
+      targetLayers = (targetLayers + 2).clamp(3, 14);
+    } else if (isMilestone5) {
+      targetLayers = (targetLayers + 1).clamp(3, 14);
     }
 
-    return _populateSolvableScrewsWithProgression(state, level, rng).copyWith(
+    final int archetypeCategory;
+    if (archetypeOverride != null) {
+      archetypeCategory = archetypeOverride;
+    } else if (seed != null) {
+      archetypeCategory = rng.nextInt(10);
+    } else if (level <= 10) {
+      archetypeCategory = level - 1;
+    } else {
+      final tier = (level - 1) ~/ 10;
+      final tierRng = Random(tier * 7919 + 31);
+      final perm = List<int>.generate(10, (i) => i)..shuffle(tierRng);
+      archetypeCategory = perm[(level - 1) % 10];
+    }
+
+    final isHybrid = isBoss || (level >= 12 && level % 3 == 0);
+
+    GameState state;
+    if (isHybrid && archetypeOverride == null) {
+      final pair = _pickHybridPair(level, rng);
+      state = _buildHybridAssembly(
+        pair[0],
+        pair[1],
+        level,
+        targetPlatesCount,
+        targetLayers,
+        rng,
+      );
+    } else {
+      state = _buildArchetype(archetypeCategory, level, targetPlatesCount, targetLayers, rng);
+    }
+
+    if (level > 1) {
+      _applyProceduralTransform(state.plates, rng);
+    }
+
+    if (isBoss) {
+      for (final p in state.plates) {
+        p.holes = p.holes.map((h) {
+          if (rng.nextDouble() < 0.45) {
+            return h.copyWith(slotType: ScrewSlotType.star);
+          }
+          return h;
+        }).toList();
+      }
+    }
+
+    final waitingCapacity = isMilestone5 ? 3 : 4;
+
+    return _populateSolvableScrewsWithProgression(
+      state,
+      level,
+      rng,
+      waitingCapacity: waitingCapacity,
+    ).copyWith(
       level: level,
       isRandom: false,
     );
@@ -122,41 +148,22 @@ class LevelGenerator {
     }
 
     final archetypeCategory = rng.nextInt(10);
-
     GameState state;
-    switch (archetypeCategory) {
-      case 0:
-        state = _buildSymmetricalLattice(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 1:
-        state = _buildInterlockingCogwheelMatrix(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 2:
-        state = _buildCornerLabyrinthBrackets(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 3:
-        state = _buildCantileverTrussBridge(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 4:
-        state = _buildConcentricVaultFrames(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 5:
-        state = _buildRadialClockMechanism(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 6:
-        state = _buildCurvedAnchorRibcage(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 7:
-        state = _buildSweetTreatsAssembly(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 8:
-        state = _buildHeartWingsMandala(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
-      case 9:
-      default:
-        state = _buildMasterCompoundMechanism(simulatedLevel, targetPlatesCount, targetLayers, rng);
-        break;
+    if (difficulty == PuzzleDifficulty.master || (difficulty == PuzzleDifficulty.expert && rng.nextBool())) {
+      final pair = _pickHybridPair(simulatedLevel, rng);
+      state = _buildHybridAssembly(
+        pair[0],
+        pair[1],
+        simulatedLevel,
+        targetPlatesCount,
+        targetLayers,
+        rng,
+      );
+    } else {
+      state = _buildArchetype(archetypeCategory, simulatedLevel, targetPlatesCount, targetLayers, rng);
     }
+
+    _applyProceduralTransform(state.plates, rng);
 
     final populated = _populateSolvableScrewsWithProgression(
       state,
@@ -172,6 +179,128 @@ class LevelGenerator {
       difficulty: difficulty,
       seed: effectiveSeed,
     );
+  }
+
+  static GameState _buildArchetype(int category, int level, int plateCount, int maxLayers, Random rng) {
+    switch (category % 10) {
+      case 0:
+        return _buildSymmetricalLattice(level, plateCount, maxLayers, rng);
+      case 1:
+        return _buildInterlockingCogwheelMatrix(level, plateCount, maxLayers, rng);
+      case 2:
+        return _buildCornerLabyrinthBrackets(level, plateCount, maxLayers, rng);
+      case 3:
+        return _buildCantileverTrussBridge(level, plateCount, maxLayers, rng);
+      case 4:
+        return _buildConcentricVaultFrames(level, plateCount, maxLayers, rng);
+      case 5:
+        return _buildRadialClockMechanism(level, plateCount, maxLayers, rng);
+      case 6:
+        return _buildCurvedAnchorRibcage(level, plateCount, maxLayers, rng);
+      case 7:
+        return _buildSweetTreatsAssembly(level, plateCount, maxLayers, rng);
+      case 8:
+        return _buildHeartWingsMandala(level, plateCount, maxLayers, rng);
+      case 9:
+      default:
+        return _buildMasterCompoundMechanism(level, plateCount, maxLayers, rng);
+    }
+  }
+
+  static const List<List<int>> _curatedHybridPairs = [
+    [4, 5],
+    [3, 1],
+    [0, 8],
+    [6, 2],
+    [0, 1],
+    [4, 8],
+    [3, 5],
+    [6, 1],
+    [0, 9],
+    [4, 2],
+  ];
+
+  static List<int> _pickHybridPair(int level, Random rng) {
+    final idx = ((level ~/ 5) + rng.nextInt(3)) % _curatedHybridPairs.length;
+    return _curatedHybridPairs[idx];
+  }
+
+  static GameState _buildHybridAssembly(
+    int primaryCategory,
+    int secondaryCategory,
+    int level,
+    int plateCount,
+    int maxLayers,
+    Random rng,
+  ) {
+    final baseCount = (plateCount * 0.55).round().clamp(4, 20);
+    final overlayCount = (plateCount * 0.45).round().clamp(3, 16);
+    final baseLayers = (maxLayers * 0.5).round().clamp(2, 6);
+    final overlayLayers = (maxLayers * 0.5).round().clamp(2, 6);
+
+    final baseState = _buildArchetype(primaryCategory, level, baseCount, baseLayers, rng);
+    final overlayState = _buildArchetype(secondaryCategory, level, overlayCount, overlayLayers, rng);
+
+    final mergedPlates = <PlateModel>[];
+    for (final p in baseState.plates) {
+      mergedPlates.add(
+        PlateModel(
+          id: p.id,
+          shapeType: p.shapeType,
+          size: p.size,
+          color: p.color,
+          layer: (p.layer * 2).clamp(0, 14),
+          position: p.position,
+          angle: p.angle,
+          holes: p.holes,
+        ),
+      );
+    }
+
+    final center = const Offset(boardCenterX, boardCenterY);
+    for (final p in overlayState.plates) {
+      final rel = p.position - center;
+      final newPos = center + rel * 0.84;
+      final newSize = Size(p.size.width * 0.84, p.size.height * 0.84);
+      final newHoles = p.holes
+          .map((h) => h.copyWith(
+                id: 'hy_${primaryCategory}_${secondaryCategory}_${h.id}',
+                relativeOffset: h.relativeOffset * 0.84,
+              ))
+          .toList();
+      mergedPlates.add(
+        PlateModel(
+          id: 'hy_${primaryCategory}_${secondaryCategory}_${p.id}',
+          shapeType: p.shapeType,
+          size: newSize,
+          color: p.color,
+          layer: (p.layer * 2 + 1).clamp(0, 14),
+          position: newPos,
+          angle: p.angle,
+          holes: newHoles,
+        ),
+      );
+    }
+
+    return baseState.copyWith(plates: mergedPlates);
+  }
+
+  static void _applyProceduralTransform(List<PlateModel> plates, Random rng) {
+    final rotSteps = rng.nextInt(4);
+    final rotAngle = rotSteps * (pi / 2.0) + (rng.nextDouble() - 0.5) * 0.08;
+    final center = const Offset(boardCenterX, boardCenterY);
+    final cosA = cos(rotAngle);
+    final sinA = sin(rotAngle);
+    final offsetX = (rng.nextDouble() - 0.5) * 12.0;
+    final offsetY = (rng.nextDouble() - 0.5) * 14.0;
+
+    for (final plate in plates) {
+      final rel = plate.position - center;
+      final rx = rel.dx * cosA - rel.dy * sinA;
+      final ry = rel.dx * sinA + rel.dy * cosA;
+      plate.position = center + Offset(rx + offsetX, ry + offsetY);
+      plate.angle += rotAngle;
+    }
   }
 
   static GameState _buildSymmetricalLattice(int level, int plateCount, int maxLayers, Random rng) {
@@ -1183,6 +1312,7 @@ class LevelGenerator {
     Random rng, {
     int? numColorsOverride,
     double? swapRateOverride,
+    int? waitingCapacity,
   }) {
     for (final p in blueprint.plates) {
       p.isFalling = false;
@@ -1240,9 +1370,12 @@ class LevelGenerator {
     int colorIdx = 0;
     final waitingScrews = <ScrewColor>[];
 
+    final capacity = waitingCapacity ?? blueprint.waitingHolesCapacity;
+    final waitThreshold = max(2, capacity - 1);
+
     while (unassignedHoles.isNotEmpty || waitingScrews.isNotEmpty) {
       ScrewColor? chosenColor;
-      if (waitingScrews.length >= 3) {
+      if (waitingScrews.length >= waitThreshold) {
         final counts = <ScrewColor, int>{};
         for (final s in waitingScrews) {
           counts[s] = (counts[s] ?? 0) + 1;
@@ -1330,6 +1463,8 @@ class LevelGenerator {
     return blueprint.copyWith(
       activeBox: boxes.first,
       pendingBoxes: boxes.length > 1 ? boxes.sublist(1) : const [],
+      waitingHoles: List.filled(capacity, null),
+      waitingHolesCapacity: capacity,
     );
   }
 }
