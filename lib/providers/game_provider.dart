@@ -115,10 +115,10 @@ class GameNotifier extends StateNotifier<GameState> {
 
     final screw = hole.currentScrew!;
 
-    final shouldGoToActiveBox = toActiveBox ??
-        (state.activeBox.targetColor == screw && !state.activeBox.isFull);
+    final matchesActiveBox = state.activeBox.targetColor == screw && !state.activeBox.isFull;
+    final shouldGoToActiveBox = (toActiveBox ?? matchesActiveBox) && matchesActiveBox;
 
-    if (shouldGoToActiveBox && !state.activeBox.isFull) {
+    if (shouldGoToActiveBox) {
       hole.currentScrew = null;
 
       final updatedBox = state.activeBox.addScrew(screw);
@@ -132,6 +132,7 @@ class GameNotifier extends StateNotifier<GameState> {
       if (updatedBox.isFull) {
         advanceBoxAndCheckWaiting();
       } else {
+        _checkWaitingHolesForActiveBox();
         _checkGameCompletion();
       }
       return true;
@@ -155,6 +156,7 @@ class GameNotifier extends StateNotifier<GameState> {
         waitingHoles: newWaiting,
       );
 
+      _checkWaitingHolesForActiveBox();
       _checkGameCompletion();
       return true;
     }

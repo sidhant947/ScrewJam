@@ -30,6 +30,18 @@ class FlyingScrew {
   });
 }
 
+class _BoxSlotTracker {
+  final ScrewColor targetColor;
+  final int capacity;
+  int count;
+
+  _BoxSlotTracker({
+    required this.targetColor,
+    required this.capacity,
+    required this.count,
+  });
+}
+
 class ScrewJamGame extends FlameGame with TapCallbacks {
   final GameNotifier notifier;
   GameState currentState;
@@ -506,19 +518,52 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
           final slotType = candidate.hole.slotType;
           final startPos = notifier.getGlobalHolePosition(candidate.plate, candidate.hole);
           Offset targetPos;
-          bool toActiveBox = false;
+
+          final boxes = [
+            _BoxSlotTracker(
+              targetColor: currentState.activeBox.targetColor,
+              capacity: currentState.activeBox.capacity,
+              count: currentState.activeBox.collected.length,
+            ),
+            for (final b in currentState.pendingBoxes)
+              _BoxSlotTracker(
+                targetColor: b.targetColor,
+                capacity: b.capacity,
+                count: 0,
+              ),
+          ];
+
+          for (final fs in _flyingScrews) {
+            if (!fs.toActiveBox) continue;
+            for (final b in boxes) {
+              if (b.count < b.capacity) {
+                if (b.targetColor == fs.screw) {
+                  b.count++;
+                }
+                break;
+              }
+            }
+          }
+
           int targetSlot = -1;
+          int? targetCapacity;
+          bool toActiveBox = false;
 
-          final flyingToBox = _flyingScrews.where((fs) => fs.toActiveBox).length;
-          final activeBox = currentState.activeBox;
+          for (final b in boxes) {
+            if (b.count < b.capacity) {
+              if (b.targetColor == screwColor) {
+                toActiveBox = true;
+                targetSlot = b.count;
+                targetCapacity = b.capacity;
+              }
+              break;
+            }
+          }
 
-          if (activeBox.targetColor == screwColor &&
-              (activeBox.collected.length + flyingToBox) < activeBox.capacity) {
-            toActiveBox = true;
-            targetSlot = activeBox.collected.length + flyingToBox;
-            final spacing = 169.0 / (activeBox.capacity + 1.0);
+          if (toActiveBox) {
+            final spacing = 169.0 / (targetCapacity! + 1.0);
             final targetScreenX =
-                size.x / 2.0 + (targetSlot - (activeBox.capacity - 1) / 2.0) * spacing;
+                size.x / 2.0 + (targetSlot - (targetCapacity - 1) / 2.0) * spacing;
             final targetScreenY = -95.0;
             targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
           } else {
@@ -541,6 +586,7 @@ class ScrewJamGame extends FlameGame with TapCallbacks {
               final targetScreenY = -32.0;
               targetPos = screenToBoard(Offset(targetScreenX, targetScreenY));
             } else {
+              targetSlot = 0;
               targetPos = startPos;
             }
           }

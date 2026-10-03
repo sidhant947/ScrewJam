@@ -44,14 +44,14 @@ class LevelGenerator {
     if (archetypeOverride != null) {
       archetypeCategory = archetypeOverride;
     } else if (seed != null) {
-      archetypeCategory = rng.nextInt(10);
-    } else if (level <= 10) {
+      archetypeCategory = rng.nextInt(9);
+    } else if (level <= 9) {
       archetypeCategory = level - 1;
     } else {
-      final tier = (level - 1) ~/ 10;
+      final tier = (level - 1) ~/ 9;
       final tierRng = Random(tier * 7919 + 31);
-      final perm = List<int>.generate(10, (i) => i)..shuffle(tierRng);
-      archetypeCategory = perm[(level - 1) % 10];
+      final perm = List<int>.generate(9, (i) => i)..shuffle(tierRng);
+      archetypeCategory = perm[(level - 1) % 9];
     }
 
     final isHybrid = isBoss || (level >= 12 && level % 3 == 0);
@@ -147,7 +147,7 @@ class LevelGenerator {
         break;
     }
 
-    final archetypeCategory = rng.nextInt(10);
+    final archetypeCategory = rng.nextInt(9);
     GameState state;
     if (difficulty == PuzzleDifficulty.master || (difficulty == PuzzleDifficulty.expert && rng.nextBool())) {
       final pair = _pickHybridPair(simulatedLevel, rng);
@@ -182,7 +182,7 @@ class LevelGenerator {
   }
 
   static GameState _buildArchetype(int category, int level, int plateCount, int maxLayers, Random rng) {
-    switch (category % 10) {
+    switch (category % 9) {
       case 0:
         return _buildSymmetricalLattice(level, plateCount, maxLayers, rng);
       case 1:
@@ -194,29 +194,27 @@ class LevelGenerator {
       case 4:
         return _buildConcentricVaultFrames(level, plateCount, maxLayers, rng);
       case 5:
-        return _buildRadialClockMechanism(level, plateCount, maxLayers, rng);
-      case 6:
         return _buildCurvedAnchorRibcage(level, plateCount, maxLayers, rng);
-      case 7:
+      case 6:
         return _buildSweetTreatsAssembly(level, plateCount, maxLayers, rng);
-      case 8:
+      case 7:
         return _buildHeartWingsMandala(level, plateCount, maxLayers, rng);
-      case 9:
+      case 8:
       default:
         return _buildMasterCompoundMechanism(level, plateCount, maxLayers, rng);
     }
   }
 
   static const List<List<int>> _curatedHybridPairs = [
-    [4, 5],
+    [4, 6],
     [3, 1],
-    [0, 8],
-    [6, 2],
+    [0, 7],
+    [5, 2],
     [0, 1],
-    [4, 8],
-    [3, 5],
-    [6, 1],
-    [0, 9],
+    [4, 7],
+    [3, 6],
+    [5, 1],
+    [0, 8],
     [4, 2],
   ];
 
@@ -768,76 +766,6 @@ class LevelGenerator {
       level: level,
       plates: plates,
       activeBox: const ToolboxModel(targetColor: ScrewColor.blue),
-      pendingBoxes: const [],
-      waitingHoles: List.filled(4, null),
-    );
-  }
-
-  static GameState _buildRadialClockMechanism(int level, int plateCount, int maxLayers, Random rng) {
-    final List<PlateModel> plates = [];
-    final spokeCount = (4 + (plateCount ~/ 2.5)).floor().clamp(4, 14);
-    final spokeLen = (145.0 - (spokeCount > 8 ? 15.0 : 0.0));
-
-    for (int i = 0; i < spokeCount; i++) {
-      final angle = (i * 2 * pi) / spokeCount;
-      final dist = (spokeCount > 8 && i % 2 == 1) ? 30.0 : 48.0;
-      final pos = Offset(boardCenterX + cos(angle) * dist, boardCenterY + sin(angle) * dist);
-
-      plates.add(
-        PlateModel(
-          id: 'rad_spoke_$i',
-          shapeType: PlateShapeType.linkBar2,
-          size: Size(32, spokeLen),
-          color: platePalette[(i * 2 + level) % platePalette.length],
-          layer: i % max<int>(1, maxLayers - 1),
-          position: pos,
-          angle: angle + pi / 2,
-          holes: [
-            ScrewHoleModel(id: 'rsp_${i}_in', relativeOffset: Offset(0, -spokeLen * 0.34)),
-            ScrewHoleModel(id: 'rsp_${i}_out', relativeOffset: Offset(0, spokeLen * 0.34)),
-          ],
-        ),
-      );
-    }
-
-    plates.add(
-      PlateModel(
-        id: 'rad_clock_disc',
-        shapeType: PlateShapeType.cogwheel,
-        size: const Size(88, 88),
-        color: const Color(0xFFFFD54F),
-        layer: maxLayers,
-        position: const Offset(boardCenterX, boardCenterY),
-        holes: [
-          ScrewHoleModel(id: 'rcd_0', relativeOffset: const Offset(-24, 0)),
-          ScrewHoleModel(id: 'rcd_1', relativeOffset: const Offset(24, 0), slotType: ScrewSlotType.star),
-        ],
-      ),
-    );
-
-    if (plateCount >= 16) {
-      plates.add(
-        PlateModel(
-          id: 'rad_ring_bar',
-          shapeType: PlateShapeType.linkBar4,
-          size: const Size(200, 32),
-          color: const Color(0xFFAB47BC),
-          layer: maxLayers,
-          position: const Offset(boardCenterX, boardCenterY),
-          holes: [
-            ScrewHoleModel(id: 'rrb_0', relativeOffset: const Offset(-70, 0)),
-            ScrewHoleModel(id: 'rrb_1', relativeOffset: const Offset(-24, 0)),
-            ScrewHoleModel(id: 'rrb_2', relativeOffset: const Offset(24, 0)),
-            ScrewHoleModel(id: 'rrb_3', relativeOffset: const Offset(70, 0)),
-          ],
-        ),
-      );
-    }
-
-    return GameState(
-      level: level,
-      plates: plates,
-      activeBox: const ToolboxModel(targetColor: ScrewColor.pink),
       pendingBoxes: const [],
       waitingHoles: List.filled(4, null),
     );
