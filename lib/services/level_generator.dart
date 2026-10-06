@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/game_models.dart';
+import 'storage_service.dart';
 
 class LevelGenerator {
   static const double boardCenterX = 180.0;
@@ -23,7 +24,7 @@ class LevelGenerator {
     Color(0xFFFF8A65),
   ];
 
-  static GameState generateLevel(int level, {int? seed, int? archetypeOverride}) {
+  static GameState generateLevel(int level, {int? seed, int? archetypeOverride, int? waitingCapacityOverride}) {
     final effectiveSeed = seed ?? (level * 10007 + 733);
     final rng = Random(effectiveSeed);
 
@@ -86,7 +87,8 @@ class LevelGenerator {
       }
     }
 
-    final waitingCapacity = isMilestone5 ? 3 : 4;
+    final defaultCapacity = waitingCapacityOverride ?? (StorageService.getDeadlockEnabled() ? 6 : 4);
+    final waitingCapacity = isMilestone5 ? 3 : defaultCapacity;
 
     return _populateSolvableScrewsWithProgression(
       state,
@@ -99,7 +101,7 @@ class LevelGenerator {
     );
   }
 
-  static GameState generateDifficultyLevel(PuzzleDifficulty difficulty, {int? seed}) {
+  static GameState generateDifficultyLevel(PuzzleDifficulty difficulty, {int? seed, int? waitingCapacityOverride}) {
     final effectiveSeed = seed ?? Random().nextInt(10000000);
     final rng = Random(effectiveSeed);
 
@@ -165,12 +167,14 @@ class LevelGenerator {
 
     _applyProceduralTransform(state.plates, rng);
 
+    final waitingCapacity = waitingCapacityOverride ?? (StorageService.getDeadlockEnabled() ? 6 : 4);
     final populated = _populateSolvableScrewsWithProgression(
       state,
       simulatedLevel,
       rng,
       numColorsOverride: numColors,
       swapRateOverride: swapRate,
+      waitingCapacity: waitingCapacity,
     );
 
     return populated.copyWith(

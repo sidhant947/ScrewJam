@@ -6,6 +6,7 @@ class StorageService {
   static const String boxName = 'game_data';
   static const String keyHighLevel = 'high_level';
   static const String keyHaptic = 'haptic_enabled';
+  static const String keyDeadlock = 'deadlock_enabled';
   static const String keyTheme = 'theme_id';
 
   static Future<void> init() async {
@@ -43,6 +44,15 @@ class StorageService {
 
   static Future<void> setHapticEnabled(bool value) async {
     await _box.put(keyHaptic, value);
+  }
+
+  static bool getDeadlockEnabled() {
+    if (!Hive.isBoxOpen(boxName)) return false;
+    return _box.get(keyDeadlock, defaultValue: false);
+  }
+
+  static Future<void> setDeadlockEnabled(bool value) async {
+    await _box.put(keyDeadlock, value);
   }
 
   static String getThemeId() {
