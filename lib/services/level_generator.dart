@@ -87,8 +87,8 @@ class LevelGenerator {
       }
     }
 
-    final defaultCapacity = waitingCapacityOverride ?? (StorageService.getDeadlockEnabled() ? 6 : 4);
-    final waitingCapacity = isMilestone5 ? 3 : defaultCapacity;
+    final waitingCapacity = waitingCapacityOverride ??
+        (StorageService.getDeadlockEnabled() ? 6 : (isMilestone5 ? 3 : 4));
 
     return _populateSolvableScrewsWithProgression(
       state,
