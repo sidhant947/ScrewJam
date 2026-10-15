@@ -125,7 +125,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             behavior: HitTestBehavior.translucent,
                             onScaleStart: _onScaleStart,
                             onScaleUpdate: _onScaleUpdate,
-                            onDoubleTap: _resetZoom,
                             child: ClipRect(
                               clipBehavior: Clip.none,
                               child: GameWidget(game: _game!),
