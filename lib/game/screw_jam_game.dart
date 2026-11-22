@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/game_models.dart';
 import '../providers/game_provider.dart';
 

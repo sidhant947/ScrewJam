@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_theme.dart';
@@ -25,6 +25,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     _hapticEnabled = StorageService.getHapticEnabled();
     _deadlockEnabled = StorageService.getDeadlockEnabled();
+  }
+
+  Widget _buildLinkButton({
+    required IconData icon,
+    required String label,
+    required String url,
+    required AppThemeData currentTheme,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Haptics.select();
+        launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+      },
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: currentTheme.border.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: currentTheme.textPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: currentTheme.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              Icons.open_in_new_rounded,
+              color: currentTheme.textMuted,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -53,51 +107,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           children: [
-            GestureDetector(
-              onTap: () {
-                Haptics.select();
-                launchUrl(
-                  Uri.parse('https://ko-fi.com/sidhant947/tiers'),
-                  mode: LaunchMode.externalApplication,
-                );
-              },
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: currentTheme.border.withValues(alpha: 0.6),
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.favorite_rounded,
-                      color: currentTheme.textPrimary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Become a Backer',
-                      style: TextStyle(
-                        color: currentTheme.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.open_in_new_rounded,
-                      color: currentTheme.textMuted,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
+            _buildLinkButton(
+              icon: Icons.favorite_rounded,
+              label: 'Become a Backer',
+              url: 'https://ko-fi.com/sidhant947/tiers',
+              currentTheme: currentTheme,
+            ),
+            const SizedBox(height: 12),
+            _buildLinkButton(
+              icon: Icons.alternate_email_rounded,
+              label: 'Follow on Mastodon',
+              url: 'https://mastodon.social/@sidhant947',
+              currentTheme: currentTheme,
+            ),
+            const SizedBox(height: 12),
+            _buildLinkButton(
+              icon: Icons.mail_outline_rounded,
+              label: 'Contact Email',
+              url: 'mailto:sidhant947@proton.me',
+              currentTheme: currentTheme,
             ),
             const SizedBox(height: 24),
             Padding(

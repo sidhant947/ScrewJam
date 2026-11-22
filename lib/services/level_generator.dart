@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/game_models.dart';
 import 'storage_service.dart';
 
@@ -582,8 +582,9 @@ class LevelGenerator {
       final quad = i % 4;
       final ring = i ~/ 4;
       final dist = (34.0 + ring * 32.0).clamp(34.0, 115.0);
-      final angle = (quad * pi / 2);
-      final pos = Offset(boardCenterX + cos(angle + pi / 4) * dist, boardCenterY + sin(angle + pi / 4) * dist);
+      final posAngle = quad * pi / 2;
+      final pos = Offset(boardCenterX + cos(posAngle + pi / 4) * dist, boardCenterY + sin(posAngle + pi / 4) * dist);
+      final angle = ((quad + 3) % 4) * (pi / 2);
       final size = (130.0 - ring * 12.0).clamp(80.0, 130.0);
 
       plates.add(
